@@ -1,9 +1,9 @@
 import { Http2ServerResponse } from 'node:http2';
-import { R as ROUTE_TYPE_HEADER, o as REROUTE_DIRECTIVE_HEADER, A as AstroError, p as i18nNoLocaleFoundInPath, q as ResponseSentError, t as MiddlewareNoDataOrNextCalled, u as MiddlewareNotAResponse, G as GetStaticPathsRequired, v as InvalidGetStaticPathsReturn, w as InvalidGetStaticPathsEntry, x as GetStaticPathsExpectedParams, y as GetStaticPathsInvalidRouteParam, P as PageNumberParamNotFound, z as decryptString, B as createSlotValueFromString, r as renderTemplate, g as renderComponent, D as DEFAULT_404_COMPONENT, C as NoMatchingStaticPathFound, H as PrerenderDynamicEndpointPathCollide, J as ReservedSlotName, K as renderSlotToString, O as renderJSX, Q as chunkToString, S as isRenderInstruction, T as LocalsReassigned, V as clientAddressSymbol$1, W as PrerenderClientAddressNotAvailable, X as ClientAddressNotAvailable, Y as StaticClientAddressNotAvailable, Z as RewriteWithBodyUsed, _ as ASTRO_VERSION, $ as AstroResponseHeadersReassigned, a0 as responseSentSymbol$1, a1 as renderPage, a2 as REWRITE_DIRECTIVE_HEADER_KEY, a3 as REWRITE_DIRECTIVE_HEADER_VALUE, a4 as renderEndpoint, a5 as LocalsNotAnObject, a6 as clientLocalsSymbol, a7 as REROUTABLE_STATUS_CODES } from './astro/server_BJyk_X5L.mjs';
-import { a as appendForwardSlash, j as joinPaths, t as trimSlashes, f as fileExtension, s as slash, p as prependForwardSlash, r as removeTrailingForwardSlash } from './path_CVKLlyuj.mjs';
+import { R as ROUTE_TYPE_HEADER, h as REROUTE_DIRECTIVE_HEADER, i as decryptString, j as createSlotValueFromString, r as renderTemplate, g as renderComponent, D as DEFAULT_404_COMPONENT, k as renderSlotToString, l as renderJSX, n as chunkToString, o as isRenderInstruction, p as originPathnameSymbol, q as clientLocalsSymbol, t as clientAddressSymbol, A as ASTRO_VERSION, u as responseSentSymbol$1, v as renderPage, w as REWRITE_DIRECTIVE_HEADER_KEY, x as REWRITE_DIRECTIVE_HEADER_VALUE, y as renderEndpoint, z as REROUTABLE_STATUS_CODES } from './astro/server_CYq_Aq8z.mjs';
+import { A as AstroError, q as i18nNoLocaleFoundInPath, s as appendForwardSlash, t as joinPaths, R as ResponseSentError, u as MiddlewareNoDataOrNextCalled, v as MiddlewareNotAResponse, G as GetStaticPathsRequired, w as InvalidGetStaticPathsReturn, x as InvalidGetStaticPathsEntry, y as GetStaticPathsExpectedParams, z as GetStaticPathsInvalidRouteParam, B as trimSlashes, P as PageNumberParamNotFound, C as NoMatchingStaticPathFound, H as PrerenderDynamicEndpointPathCollide, J as ReservedSlotName, K as removeTrailingForwardSlash, L as RewriteWithBodyUsed, Q as LocalsNotAnObject, S as PrerenderClientAddressNotAvailable, T as ClientAddressNotAvailable, U as StaticClientAddressNotAvailable, V as AstroResponseHeadersReassigned, W as fileExtension, X as slash, Y as prependForwardSlash } from './astro/assets-service_DgXN-x9d.mjs';
 import { serialize, parse } from 'cookie';
 import { bold, red, yellow, dim, blue } from 'kleur/colors';
-import { g as getActionQueryString, d as deserializeActionResult, e as ensure404Route, a as default404Instance, D as DEFAULT_404_ROUTE, N as NOOP_MIDDLEWARE_FN } from './astro-designed-error-pages_B4irPDOa.mjs';
+import { g as getActionQueryString, d as deserializeActionResult, e as ensure404Route, a as default404Instance, D as DEFAULT_404_ROUTE, N as NOOP_MIDDLEWARE_FN } from './astro-designed-error-pages_D-QVKe1S.mjs';
 import 'es-module-lexer';
 import 'clsx';
 import 'fast-glob';
@@ -923,7 +923,7 @@ function stringifyParams(params, route) {
   return route.generate(validatedParams);
 }
 
-function generatePaginateFunction(routeMatch, base) {
+function generatePaginateFunction(routeMatch) {
   return function paginateUtility(data, args = {}) {
     let { pageSize: _pageSize, params: _params, props: _props } = args;
     const pageSize = _pageSize || 10;
@@ -950,23 +950,21 @@ function generatePaginateFunction(routeMatch, base) {
         ...additionalParams,
         [paramName]: includesFirstPageNumber || pageNum > 1 ? String(pageNum) : void 0
       };
-      const current = addRouteBase(routeMatch.generate({ ...params }), base);
-      const next = pageNum === lastPage ? void 0 : addRouteBase(routeMatch.generate({ ...params, page: String(pageNum + 1) }), base);
-      const prev = pageNum === 1 ? void 0 : addRouteBase(
+      const current = correctIndexRoute(routeMatch.generate({ ...params }));
+      const next = pageNum === lastPage ? void 0 : correctIndexRoute(routeMatch.generate({ ...params, page: String(pageNum + 1) }));
+      const prev = pageNum === 1 ? void 0 : correctIndexRoute(
         routeMatch.generate({
           ...params,
           page: !includesFirstPageNumber && pageNum - 1 === 1 ? void 0 : String(pageNum - 1)
-        }),
-        base
+        })
       );
-      const first = pageNum === 1 ? void 0 : addRouteBase(
+      const first = pageNum === 1 ? void 0 : correctIndexRoute(
         routeMatch.generate({
           ...params,
           page: includesFirstPageNumber ? "1" : void 0
-        }),
-        base
+        })
       );
-      const last = pageNum === lastPage ? void 0 : addRouteBase(routeMatch.generate({ ...params, page: String(lastPage) }), base);
+      const last = pageNum === lastPage ? void 0 : correctIndexRoute(routeMatch.generate({ ...params, page: String(lastPage) }));
       return {
         params,
         props: {
@@ -987,10 +985,11 @@ function generatePaginateFunction(routeMatch, base) {
     return result;
   };
 }
-function addRouteBase(route, base) {
-  let routeWithBase = joinPaths(base, route);
-  if (routeWithBase === "") routeWithBase = "/";
-  return routeWithBase;
+function correctIndexRoute(route) {
+  if (route === "") {
+    return "/";
+  }
+  return route;
 }
 
 async function callGetStaticPaths({
@@ -998,8 +997,7 @@ async function callGetStaticPaths({
   route,
   routeCache,
   logger,
-  ssr,
-  base
+  ssr
 }) {
   const cached = routeCache.get(route);
   if (!mod) {
@@ -1021,7 +1019,7 @@ async function callGetStaticPaths({
   staticPaths = await mod.getStaticPaths({
     // Q: Why the cast?
     // A: So users downstream can have nicer typings, we have to make some sacrifice in our internal typings, which necessitate a cast here
-    paginate: generatePaginateFunction(route, base)
+    paginate: generatePaginateFunction(route)
   });
   validateGetStaticPathsResult(staticPaths, logger, route);
   const keyedStaticPaths = staticPaths;
@@ -1126,50 +1124,14 @@ function ensureServerIslandRoute(config, routeManifest) {
   if (routeManifest.routes.some((route) => route.route === "/_server-islands/[name]")) {
     return;
   }
-  routeManifest.routes.push(getServerIslandRouteData(config));
-}
-function badRequest(reason) {
-  return new Response(null, {
-    status: 400,
-    statusText: "Bad request: " + reason
-  });
-}
-async function getRequestData(request) {
-  switch (request.method) {
-    case "GET": {
-      const url = new URL(request.url);
-      const params = url.searchParams;
-      if (!params.has("s") || !params.has("e") || !params.has("p")) {
-        return badRequest("Missing required query parameters.");
-      }
-      const rawSlots = params.get("s");
-      try {
-        return {
-          componentExport: params.get("e"),
-          encryptedProps: params.get("p"),
-          slots: JSON.parse(rawSlots)
-        };
-      } catch {
-        return badRequest("Invalid slots format.");
-      }
-    }
-    case "POST": {
-      try {
-        const raw = await request.text();
-        const data = JSON.parse(raw);
-        return data;
-      } catch {
-        return badRequest("Request format is invalid.");
-      }
-    }
-    default: {
-      return new Response(null, { status: 405 });
-    }
-  }
+  routeManifest.routes.unshift(getServerIslandRouteData(config));
 }
 function createEndpoint(manifest) {
   const page = async (result) => {
     const params = result.params;
+    const request = result.request;
+    const raw = await request.text();
+    const data = JSON.parse(raw);
     if (!params.name) {
       return new Response(null, {
         status: 400,
@@ -1177,10 +1139,6 @@ function createEndpoint(manifest) {
       });
     }
     const componentId = params.name;
-    const data = await getRequestData(result.request);
-    if (data instanceof Response) {
-      return data;
-    }
     const imp = manifest.serverIslandMap?.get(componentId);
     if (!imp) {
       return new Response(null, {
@@ -1256,7 +1214,7 @@ class Pipeline {
         createI18nMiddleware(i18n, manifest.base, manifest.trailingSlash, manifest.buildFormat)
       );
     }
-    if (callSetGetEnv && manifest.envGetSecretEnabled) ;
+    if (callSetGetEnv && manifest.experimentalEnvGetSecretEnabled) ;
   }
   internalMiddleware;
   resolvedMiddleware = void 0;
@@ -1334,7 +1292,7 @@ function redirectRouteGenerate(renderContext) {
 }
 
 async function getProps(opts) {
-  const { logger, mod, routeData: route, routeCache, pathname, serverLike, base } = opts;
+  const { logger, mod, routeData: route, routeCache, pathname, serverLike } = opts;
   if (!route || route.pathname) {
     return {};
   }
@@ -1346,8 +1304,7 @@ async function getProps(opts) {
     route,
     routeCache,
     logger,
-    ssr: serverLike,
-    base
+    ssr: serverLike
   });
   const params = getParams(route, pathname);
   const matchedStaticPath = findPathItemByKey(staticPaths, params, route, logger);
@@ -1366,7 +1323,7 @@ async function getProps(opts) {
 }
 function getParams(route, pathname) {
   if (!route.params.length) return {};
-  const paramsMatch = route.pattern.exec(pathname);
+  const paramsMatch = route.pattern.exec(decodeURIComponent(pathname));
   if (!paramsMatch) return {};
   const params = {};
   route.params.forEach((key, i) => {
@@ -1513,9 +1470,78 @@ function defineMiddleware(fn) {
   return fn;
 }
 
+function findRouteToRewrite({
+  payload,
+  routes,
+  request,
+  trailingSlash,
+  buildFormat,
+  base
+}) {
+  let newUrl = void 0;
+  if (payload instanceof URL) {
+    newUrl = payload;
+  } else if (payload instanceof Request) {
+    newUrl = new URL(payload.url);
+  } else {
+    newUrl = new URL(payload, new URL(request.url).origin);
+  }
+  let pathname = newUrl.pathname;
+  if (base !== "/" && newUrl.pathname.startsWith(base)) {
+    pathname = shouldAppendForwardSlash(trailingSlash, buildFormat) ? appendForwardSlash(newUrl.pathname) : removeTrailingForwardSlash(newUrl.pathname);
+    pathname = pathname.slice(base.length);
+  }
+  let foundRoute;
+  for (const route of routes) {
+    if (route.pattern.test(decodeURI(pathname))) {
+      foundRoute = route;
+      break;
+    }
+  }
+  if (foundRoute) {
+    return {
+      routeData: foundRoute,
+      newUrl,
+      pathname
+    };
+  } else {
+    const custom404 = routes.find((route) => route.route === "/404");
+    if (custom404) {
+      return { routeData: custom404, newUrl, pathname };
+    } else {
+      return { routeData: DEFAULT_404_ROUTE, newUrl, pathname };
+    }
+  }
+}
+function copyRequest(newUrl, oldRequest) {
+  if (oldRequest.bodyUsed) {
+    throw new AstroError(RewriteWithBodyUsed);
+  }
+  return new Request(newUrl, {
+    method: oldRequest.method,
+    headers: oldRequest.headers,
+    body: oldRequest.body,
+    referrer: oldRequest.referrer,
+    referrerPolicy: oldRequest.referrerPolicy,
+    mode: oldRequest.mode,
+    credentials: oldRequest.credentials,
+    cache: oldRequest.cache,
+    redirect: oldRequest.redirect,
+    integrity: oldRequest.integrity,
+    signal: oldRequest.signal,
+    keepalive: oldRequest.keepalive,
+    // https://fetch.spec.whatwg.org/#dom-request-duplex
+    // @ts-expect-error It isn't part of the types, but undici accepts it and it allows to carry over the body to a new request
+    duplex: "half"
+  });
+}
+function setOriginPathname(request, pathname) {
+  Reflect.set(request, originPathnameSymbol, encodeURIComponent(pathname));
+}
+
 const apiContextRoutesSymbol = Symbol.for("context.routes");
 class RenderContext {
-  constructor(pipeline, locals, middleware, pathname, request, routeData, status, cookies = new AstroCookies(request), params = getParams(routeData, pathname), url = new URL(request.url), props = {}) {
+  constructor(pipeline, locals, middleware, pathname, request, routeData, status, cookies = new AstroCookies(request), params = getParams(routeData, pathname), url = new URL(request.url), props = {}, partial = void 0) {
     this.pipeline = pipeline;
     this.locals = locals;
     this.middleware = middleware;
@@ -1527,6 +1553,7 @@ class RenderContext {
     this.params = params;
     this.url = url;
     this.props = props;
+    this.partial = partial;
   }
   /**
    * A flag that tells the render content if the rewriting was triggered
@@ -1544,21 +1571,24 @@ class RenderContext {
     request,
     routeData,
     status = 200,
-    props
+    props,
+    partial = void 0
   }) {
     const pipelineMiddleware = await pipeline.getMiddleware();
+    setOriginPathname(request, pathname);
     return new RenderContext(
       pipeline,
       locals,
       sequence(...pipeline.internalMiddleware, middleware ?? pipelineMiddleware),
-      decodeURI(pathname),
+      pathname,
       request,
       routeData,
       status,
       void 0,
       void 0,
       void 0,
-      props
+      props,
+      partial
     );
   }
   /**
@@ -1574,17 +1604,17 @@ class RenderContext {
    */
   async render(componentInstance, slots = {}) {
     const { cookies, middleware, pipeline } = this;
-    const { logger, serverLike, streaming, manifest } = pipeline;
+    const { logger, serverLike, streaming } = pipeline;
+    const isPrerendered = !serverLike || this.routeData.prerender;
     const props = Object.keys(this.props).length > 0 ? this.props : await getProps({
       mod: componentInstance,
       routeData: this.routeData,
       routeCache: this.pipeline.routeCache,
       pathname: this.pathname,
       logger,
-      serverLike,
-      base: manifest.base
+      serverLike
     });
-    const apiContext = this.createAPIContext(props);
+    const apiContext = this.createAPIContext(props, isPrerendered);
     this.counter++;
     if (this.counter === 4) {
       return new Response("Loop Detected", {
@@ -1607,7 +1637,7 @@ class RenderContext {
         if (payload instanceof Request) {
           this.request = payload;
         } else {
-          this.request = this.#copyRequest(newUrl, this.request);
+          this.request = copyRequest(newUrl, this.request);
         }
         this.isRewriting = true;
         this.url = new URL(this.request.url);
@@ -1619,12 +1649,7 @@ class RenderContext {
       let response2;
       switch (this.routeData.type) {
         case "endpoint": {
-          response2 = await renderEndpoint(
-            componentInstance,
-            ctx,
-            this.routeData.prerender,
-            logger
-          );
+          response2 = await renderEndpoint(componentInstance, ctx, serverLike, logger);
           break;
         }
         case "redirect":
@@ -1670,7 +1695,7 @@ class RenderContext {
     attachCookiesToResponse(response, cookies);
     return response;
   }
-  createAPIContext(props) {
+  createAPIContext(props, isPrerendered) {
     const context = this.createActionAPIContext();
     const redirect = (path, status = 302) => new Response(null, { status, headers: { Location: path } });
     Reflect.set(context, apiContextRoutesSymbol, this.pipeline);
@@ -1678,7 +1703,12 @@ class RenderContext {
       props,
       redirect,
       getActionResult: createGetActionResult(context.locals),
-      callAction: createCallAction(context)
+      callAction: createCallAction(context),
+      // Used internally by Actions middleware.
+      // TODO: discuss exposing this information from APIContext.
+      // middleware runs on prerendered routes in the dev server,
+      // so this is useful information to have.
+      _isPrerendered: isPrerendered
     });
   }
   async #executeRewrite(reroutePayload) {
@@ -1691,7 +1721,7 @@ class RenderContext {
     if (reroutePayload instanceof Request) {
       this.request = reroutePayload;
     } else {
-      this.request = this.#copyRequest(newUrl, this.request);
+      this.request = copyRequest(newUrl, this.request);
     }
     this.url = new URL(this.request.url);
     this.cookies = new AstroCookies(this.request);
@@ -1710,8 +1740,6 @@ class RenderContext {
     };
     return {
       cookies,
-      routePattern: this.routeData.route,
-      isPrerendered: this.routeData.prerender,
       get clientAddress() {
         return renderContext.clientAddress();
       },
@@ -1722,8 +1750,14 @@ class RenderContext {
       get locals() {
         return renderContext.locals;
       },
-      set locals(_) {
-        throw new AstroError(LocalsReassigned);
+      // TODO(breaking): disallow replacing the locals object
+      set locals(val) {
+        if (typeof val !== "object") {
+          throw new AstroError(LocalsNotAnObject);
+        } else {
+          renderContext.locals = val;
+          Reflect.set(this.request, clientLocalsSymbol, val);
+        }
       },
       params,
       get preferredLocale() {
@@ -1744,7 +1778,7 @@ class RenderContext {
     const { links, scripts, styles } = await pipeline.headElements(routeData);
     const componentMetadata = await pipeline.componentMetadata(routeData) ?? manifest.componentMetadata;
     const headers = new Headers({ "Content-Type": "text/html" });
-    const partial = Boolean(mod.partial);
+    const partial = typeof this.partial === "boolean" ? this.partial : Boolean(mod.partial);
     const response = {
       status,
       statusText: "OK",
@@ -1854,8 +1888,6 @@ class RenderContext {
     return {
       generator: astroStaticPartial.generator,
       glob: astroStaticPartial.glob,
-      routePattern: this.routeData.route,
-      isPrerendered: this.routeData.prerender,
       cookies,
       get clientAddress() {
         return renderContext.clientAddress();
@@ -1885,17 +1917,19 @@ class RenderContext {
   }
   clientAddress() {
     const { pipeline, request } = this;
-    if (clientAddressSymbol$1 in request) {
-      return Reflect.get(request, clientAddressSymbol$1);
+    if (clientAddressSymbol in request) {
+      return Reflect.get(request, clientAddressSymbol);
     }
-    if (request.body === null) {
-      throw new AstroError(PrerenderClientAddressNotAvailable);
-    }
-    if (pipeline.adapterName) {
-      throw new AstroError({
-        ...ClientAddressNotAvailable,
-        message: ClientAddressNotAvailable.message(pipeline.adapterName)
-      });
+    if (pipeline.serverLike) {
+      if (request.body === null) {
+        throw new AstroError(PrerenderClientAddressNotAvailable);
+      }
+      if (pipeline.adapterName) {
+        throw new AstroError({
+          ...ClientAddressNotAvailable,
+          message: ClientAddressNotAvailable.message(pipeline.adapterName)
+        });
+      }
     }
     throw new AstroError(StaticClientAddressNotAvailable);
   }
@@ -1942,34 +1976,6 @@ class RenderContext {
     } = this;
     if (!i18n) return;
     return this.#preferredLocaleList ??= computePreferredLocaleList(request, i18n.locales);
-  }
-  /**
-   * Utility function that creates a new `Request` with a new URL from an old `Request`.
-   *
-   * @param newUrl The new `URL`
-   * @param oldRequest The old `Request`
-   */
-  #copyRequest(newUrl, oldRequest) {
-    if (oldRequest.bodyUsed) {
-      throw new AstroError(RewriteWithBodyUsed);
-    }
-    return new Request(newUrl, {
-      method: oldRequest.method,
-      headers: oldRequest.headers,
-      body: oldRequest.body,
-      referrer: oldRequest.referrer,
-      referrerPolicy: oldRequest.referrerPolicy,
-      mode: oldRequest.mode,
-      credentials: oldRequest.credentials,
-      cache: oldRequest.cache,
-      redirect: oldRequest.redirect,
-      integrity: oldRequest.integrity,
-      signal: oldRequest.signal,
-      keepalive: oldRequest.keepalive,
-      // https://fetch.spec.whatwg.org/#dom-request-duplex
-      // @ts-expect-error It isn't part of the types, but undici accepts it and it allows to carry over the body to a new request
-      duplex: "half"
-    });
   }
 }
 
@@ -2039,50 +2045,6 @@ function matchRoute(pathname, manifest) {
   return manifest.routes.find((route) => {
     return route.pattern.test(decodedPathname) || route.fallbackRoutes.some((fallbackRoute) => fallbackRoute.pattern.test(decodedPathname));
   });
-}
-
-function findRouteToRewrite({
-  payload,
-  routes,
-  request,
-  trailingSlash,
-  buildFormat,
-  base
-}) {
-  let newUrl = void 0;
-  if (payload instanceof URL) {
-    newUrl = payload;
-  } else if (payload instanceof Request) {
-    newUrl = new URL(payload.url);
-  } else {
-    newUrl = new URL(payload, new URL(request.url).origin);
-  }
-  let pathname = newUrl.pathname;
-  if (base !== "/" && newUrl.pathname.startsWith(base)) {
-    pathname = shouldAppendForwardSlash(trailingSlash, buildFormat) ? appendForwardSlash(newUrl.pathname) : removeTrailingForwardSlash(newUrl.pathname);
-    pathname = pathname.slice(base.length);
-  }
-  let foundRoute;
-  for (const route of routes) {
-    if (route.pattern.test(decodeURI(pathname))) {
-      foundRoute = route;
-      break;
-    }
-  }
-  if (foundRoute) {
-    return {
-      routeData: foundRoute,
-      newUrl,
-      pathname
-    };
-  } else {
-    const custom404 = routes.find((route) => route.route === "/404");
-    if (custom404) {
-      return { routeData: custom404, newUrl, pathname };
-    } else {
-      return { routeData: DEFAULT_404_ROUTE, newUrl, pathname };
-    }
-  }
 }
 
 class AppPipeline extends Pipeline {
@@ -2317,15 +2279,31 @@ class App {
     }
     return pathname;
   }
-  async render(request, renderOptions) {
+  async render(request, routeDataOrOptions, maybeLocals) {
     let routeData;
     let locals;
     let clientAddress;
     let addCookieHeader;
-    addCookieHeader = renderOptions?.addCookieHeader;
-    clientAddress = renderOptions?.clientAddress;
-    routeData = renderOptions?.routeData;
-    locals = renderOptions?.locals;
+    if (routeDataOrOptions && ("addCookieHeader" in routeDataOrOptions || "clientAddress" in routeDataOrOptions || "locals" in routeDataOrOptions || "routeData" in routeDataOrOptions)) {
+      if ("addCookieHeader" in routeDataOrOptions) {
+        addCookieHeader = routeDataOrOptions.addCookieHeader;
+      }
+      if ("clientAddress" in routeDataOrOptions) {
+        clientAddress = routeDataOrOptions.clientAddress;
+      }
+      if ("routeData" in routeDataOrOptions) {
+        routeData = routeDataOrOptions.routeData;
+      }
+      if ("locals" in routeDataOrOptions) {
+        locals = routeDataOrOptions.locals;
+      }
+    } else {
+      routeData = routeDataOrOptions;
+      locals = maybeLocals;
+      if (routeDataOrOptions || locals) {
+        this.#logRenderOptionsDeprecationWarning();
+      }
+    }
     if (routeData) {
       this.#logger.debug(
         "router",
@@ -2343,7 +2321,7 @@ class App {
       Reflect.set(request, clientLocalsSymbol, locals);
     }
     if (clientAddress) {
-      Reflect.set(request, clientAddressSymbol$1, clientAddress);
+      Reflect.set(request, clientAddressSymbol, clientAddress);
     }
     if (!routeData) {
       routeData = this.match(request);
@@ -2393,6 +2371,14 @@ class App {
     }
     Reflect.set(response, responseSentSymbol$1, true);
     return response;
+  }
+  #logRenderOptionsDeprecationWarning() {
+    if (this.#renderOptionsDeprecationWarningShown) return;
+    this.#logger.warn(
+      "deprecated",
+      `The adapter ${this.#manifest.adapterName} is using a deprecated signature of the 'app.render()' method. From Astro 4.0, locals and routeData are provided as properties on an optional object to this method. Using the old signature will cause an error in Astro 5.0. See https://github.com/withastro/astro/pull/9199 for more information.`
+    );
+    this.#renderOptionsDeprecationWarningShown = true;
   }
   setCookieHeaders(response) {
     return getSetCookiesFromResponse(response);
@@ -2540,7 +2526,6 @@ function apply() {
   }
 }
 
-const clientAddressSymbol = Symbol.for("astro.clientAddress");
 class NodeApp extends App {
   match(req) {
     if (!(req instanceof Request)) {
@@ -2703,7 +2688,7 @@ const ASTRO_MIDDLEWARE_SECRET_HEADER = 'x-astro-middleware-secret';
 apply();
 // Won't throw if the virtual module is not available because it's not supported in
 // the users's astro version or if astro:env is not enabled in the project
-await import('./setup_Cr6XTFvb.mjs')
+await import('./astro/env-setup_Cr6XTFvb.mjs')
     .then((mod) => mod.setGetEnv((key) => process.env[key]))
     .catch(() => { });
 const createExports = (manifest, { middlewareSecret, skewProtection }) => {
