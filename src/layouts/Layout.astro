@@ -1,0 +1,36 @@
+---
+interface Props {
+  title: string
+}
+
+const { title } = Astro.props
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="Astro description" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/api.svg" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
+<style is:global>
+  body {
+    font-family: monospace;
+    background: linear-gradient(to bottom, #13151a, #1d4371);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-attachment: fixed;
+    display: grid;
+    place-content: center;
+    padding: 20px;
+    margin: 0 auto;
+    max-width: 1000px;
+    color: #ffffff;
+  }
+</style>
